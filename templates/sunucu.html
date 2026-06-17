@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ sunucu }} - GameST</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <a class="server-link" href="/">← Ana Sayfa</a>
+        <header class="header">
+            <h1>{{ sunucu }} GB Fiyat Grafiği</h1>
+            <div class="info">
+                <span>Seçili Aralık: <strong>{{ aralik_adi }}</strong></span>
+            </div>
+        </header>
+        <div class="toolbar">
+            <a class="update-btn" href="/sunucu/{{ sunucu }}?aralik=24s">24 Saat</a>
+            <a class="update-btn" href="/sunucu/{{ sunucu }}?aralik=7g">7 Gün</a>
+            <a class="update-btn" href="/sunucu/{{ sunucu }}?aralik=30g">30 Gün</a>
+            <a class="update-btn" href="/sunucu/{{ sunucu }}?aralik=tum">Tümü</a>
+        </div>
+        <div class="table-wrapper">
+            {{ grafik_html|safe }}
+        </div>
+    </div>
+</body>
+</html>

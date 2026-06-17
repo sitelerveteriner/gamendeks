@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameST</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+
+        <header class="header">
+            <h1>🎮 GameST</h1>
+
+            <div class="info">
+                <span>Takip Edilen Sunucu: <strong>{{ sunucu_sayisi }}</strong></span>
+                <span>Son Güncelleme: <strong>{{ son_guncelleme }}</strong></span>
+            </div>
+        </header>
+
+        <div class="toolbar">
+            <input
+                type="text"
+                id="serverSearch"
+                placeholder="Sunucu ara..."
+            >
+
+            <a class="update-btn" href="/guncelle">
+                Şimdi Güncelle
+            </a>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="priceTable">
+
+                <thead>
+                    <tr>
+                        <th>Sunucu</th>
+                        <th>ByNoGame Satın Al</th>
+                        <th>ByNoGame Bize Sat</th>
+                        <th>Kopazar Satın Al</th>
+                        <th>Kopazar Bize Sat</th>
+                        <th>Son Güncelleme</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for satir in veriler %}
+                    <tr>
+
+                        <td>
+                            <a class="server-link"
+                               href="/sunucu/{{ satir.sunucu }}">
+                                {{ satir.sunucu }}
+                            </a>
+                        </td>
+
+                        <td>{{ satir.bynogame_satin_al }}</td>
+                        <td>{{ satir.bynogame_bize_sat }}</td>
+                        <td>{{ satir.kopazar_satin_al }}</td>
+                        <td>{{ satir.kopazar_bize_sat }}</td>
+                        <td>{{ satir.son_tarih }}</td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        const searchInput = document.getElementById("serverSearch");
+        const table = document.getElementById("priceTable");
+
+        searchInput.addEventListener("keyup", function () {
+
+            const filter = searchInput.value.toLowerCase();
+
+            const rows = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < rows.length; i++) {
+
+                const serverCell =
+                    rows[i].getElementsByTagName("td")[0];
+
+                if (serverCell) {
+
+                    const text =
+                        serverCell.textContent.toLowerCase();
+
+                    rows[i].style.display =
+                        text.includes(filter) ? "" : "none";
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
