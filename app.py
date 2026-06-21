@@ -9,7 +9,7 @@ from database import (
     fiyat_gecmisi_getir
 )
 
-from flask import Flask, redirect, request, render_template
+from flask import Flask, redirect, request, render_template, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 from bs4 import BeautifulSoup
@@ -22,6 +22,8 @@ import plotly.graph_objects as go
 # =========================
 
 app = Flask(__name__)
+
+API_KEY = "gamendeks-12345"
 
 KOPAZAR_URL = "https://www.kopazar.com/knight-online-gold-bar"
 BYNOGAME_URL = "https://www.bynogame.com/tr/oyunlar/knight-online/gold-bar"
@@ -360,6 +362,46 @@ def sunucu_detay(sunucu):
     grafik_html=grafik_html,
     aralik_adi=aralik
 )
+
+
+# =========================
+# BYNOGAME API
+# =========================
+
+@app.route("/api/bynogame-ekle", methods=["POST"])
+def api_bynogame_ekle():
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"hata": "Veri gelmedi"}), 400
+
+    if data.get("api_key") != API_KEY:
+        return jsonify({"hata": "Yetkisiz"}), 403
+
+    kayitlar = data.get("kayitlar", [])
+    eklenen = 0
+
+    for item in kayitlar:
+        try:
+            sunucu = temiz_sunucu_adi(item.get("sunucu", ""))
+
+            fiyat_ekle(
+                simdi(),
+                "ByNoGame",
+                sunucu,
+                float(item.get("bize_sat")),
+                float(item.get("satin_al"))
+            )
+
+            eklenen += 1
+
+        except Exception as e:
+            print("ByNoGame API kayıt hatası:", e)
+
+    return jsonify({
+        "durum": "ok",
+        "eklenen": eklenen
+    })
 
 
 # =========================
