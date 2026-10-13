@@ -1,0 +1,101 @@
+
+name: Gamendeks Kopazar Otomatik
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7 * * * *"
+
+jobs:
+  kopazar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Kutuphaneleri kur
+        run: pip install requests beautifulsoup4
+
+      - name: Kopazar fiyatlarini cek
+        run: |
+          python3 - <<'PY'
+          import json
+          import requests
+          from bs4 import BeautifulSoup
+
+          url = "https://www.kopazar.com/knight-online-gold-bar"
+          response = requests.get(
+              url,
+              headers={"User-Agent": "Mozilla/5.0"},
+              timeout=30
+          )
+          response.raise_for_status()
+
+          soup = BeautifulSoup(response.text, "html.parser")
+          kayitlar = []
+
+          for item in soup.select(
+              "input[data-goldname][data-buyprice][data-sellprice]"
+          ):
+              try:
+                  sunucu = item["data-goldname"].strip()
+                  alis = float(item["data-buyprice"])
+                  satis = float(item["data-sellprice"])
+
+                  if sunucu and 0 < alis < 100000 and 0 < satis < 100000:
+                      kayitlar.append({
+                          "sunucu": sunucu,
+                          "bize_sat": alis,
+                          "satin_al": satis
+                      })
+              except (ValueError, KeyError):
+                  continue
+
+          if not kayitlar:
+              raise SystemExit("HATA: Gecerli Kopazar fiyati bulunamadi")
+
+          with open("kopazar.json", "w", encoding="utf-8") as f:
+              json.dump(kayitlar, f, ensure_ascii=False)
+
+          print(f"Kopazar: {len(kayitlar)} fiyat hazirlandi")
+          PY
+
+      - name: SSH baglantisini hazirla
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 178.105.50.234 >> ~/.ssh/known_hosts
+
+      - name: Fiyatlari VPS veritabanina kaydet
+        run: |
+          scp -o BatchMode=yes kopazar.json \
+            root@178.105.50.234:/root/gamendeks/kopazar.json
+
+          ssh -o BatchMode=yes root@178.105.50.234 \
+            'cd /root/gamendeks && /root/gamendeks/venv/bin/python -c '"'"'
+          import json
+          from datetime import datetime
+          from database import fiyat_ekle
+          from app import temiz_sunucu_adi
+
+          with open("kopazar.json", encoding="utf-8") as f:
+              kayitlar = json.load(f)
+
+          if not kayitlar:
+              raise SystemExit("Kayit listesi bos")
+
+          tarih = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+          for item in kayitlar:
+              fiyat_ekle(
+                  tarih,
+                  "Kopazar",
+                  temiz_sunucu_adi(item["sunucu"]),
+                  float(item["bize_sat"]),
+                  float(item["satin_al"])
+              )
+
+          print(f"Veritabanina {len(kayitlar)} Kopazar fiyati kaydedildi")
+          '"'"''
