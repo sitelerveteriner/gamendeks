@@ -1,4 +1,4 @@
-name: GameST Kopazar HTML Testi
+name: GameST Parser Testi
 
 on:
   workflow_dispatch:
@@ -6,39 +6,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Kopazar HTML kontrolu
-        shell: bash
-        run: |
-          python - <<'PY'
-          import urllib.request
-          import re
-          import os
+      - name: Kodlari indir
+        uses: actions/checkout@v4
 
-          url = "https://www.kopazar.com/knight-online-gold-bar"
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-          try:
-              req = urllib.request.Request(
-                  url,
-                  headers={"User-Agent": "Mozilla/5.0"}
-              )
-              with urllib.request.urlopen(req, timeout=20) as response:
-                  html = response.read().decode("utf-8", errors="replace")
-                  status = response.status
+      - name: Kutuphaneyi kur
+        run: pip install beautifulsoup4
 
-              results = {
-                  "HTTP durumu": str(status),
-                  "Zero sunucusu": "EVET" if re.search(r"Zero\s*Gb", html, re.I) else "HAYIR",
-                  "data-buyprice": "EVET" if "data-buyprice" in html else "HAYIR",
-                  "data-sellprice": "EVET" if "data-sellprice" in html else "HAYIR",
-                  "Cloudflare engel sayfasi": "EVET" if "Access denied" in html or "Attention Required!" in html else "HAYIR"
-              }
-          except Exception as e:
-              results = {"Test hatasi": str(e)}
-
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
-              f.write("## Kopazar HTML Test Sonuclari\n\n")
-              f.write("| Kontrol | Sonuc |\n|---|---|\n")
-              for key, value in results.items():
-                  f.write(f"| {key} | {value} |\n")
-          PY
+      - name: Kopazar parser testini calistir
+        run: python kopazar_parser.py
