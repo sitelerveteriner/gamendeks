@@ -1,0 +1,52 @@
+name: Gamendeks Canli Kopazar Kontrolu
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Kodlari indir
+        uses: actions/checkout@v4
+
+      - name: Python kutuphanesini kur
+        run: pip install beautifulsoup4
+
+      - name: Canli HTML uyumlulugunu kontrol et
+        shell: bash
+        run: |
+          python - <<'PY'
+          import urllib.request
+          from bs4 import BeautifulSoup
+
+          url = "https://www.kopazar.com/knight-online-gold-bar"
+          request = urllib.request.Request(
+              url, headers={"User-Agent": "Mozilla/5.0"}
+          )
+
+          with urllib.request.urlopen(request, timeout=25) as response:
+              html = response.read().decode("utf-8", errors="replace")
+
+          soup = BeautifulSoup(html, "html.parser")
+          elements = soup.select(
+              "input[data-goldname][data-buyprice][data-sellprice]"
+          )
+
+          assert elements, "Canli HTML'de beklenen fiyat alanlari bulunamadi"
+
+          print("HTML yapisi uyumlu")
+          print("Bulunan fiyat alanlari:", len(elements))
+          PY
+
+      - name: Sonucu dosyaya yaz
+        if: always()
+        run: |
+          echo "Canli HTML kontrolu tamamlandi." > sonuc.txt
+
+      - name: Sonucu kaydet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kopazar-test-sonucu
+          path: sonuc.txt
