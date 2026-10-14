@@ -21,6 +21,7 @@ jobs:
           from bs4 import BeautifulSoup
 
           url = "https://www.kopazar.com/knight-online-gold-bar"
+
           response = requests.get(
               url,
               headers={"User-Agent": "Mozilla/5.0"},
@@ -45,41 +46,26 @@ jobs:
                           "bize_sat": alis,
                           "satin_al": satis
                       })
+
               except (ValueError, KeyError):
                   continue
 
           if not kayitlar:
-              raise SystemExit("HATA: Gecerli Kopazar fiyati bulunamadi")
+              raise SystemExit(
+                  "HATA: Gecerli Kopazar fiyati bulunamadi"
+              )
 
           with open("kopazar.json", "w", encoding="utf-8") as f:
               json.dump(kayitlar, f, ensure_ascii=False)
 
-          print(f"Kopazar: {len(kayitlar)} fiyat hazirlandi")
+          print(
+              f"Kopazar: {len(kayitlar)} fiyat hazirlandi"
+          )
           PY
 
-      - name: SSH baglantisini hazirla
-        env:
-          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+      - name: Veritabani kayit dosyasini hazirla
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-
-          printf '178.105.50.234 %s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-          ssh-keygen -F 178.105.50.234 > /dev/null
-
-      - name: Fiyatlari VPS veritabanina kaydet
-        run: |
-          scp -o BatchMode=yes kopazar.json \
-            root@178.105.50.234:/root/gamendeks/kopazar.json
-
-          ssh -o BatchMode=yes root@178.105.50.234 \
-            'cd /root/gamendeks && /root/gamendeks/venv/bin/python -c '"'"'
+          cat > kopazar_kaydet.py <<'PY'
           import json
           from datetime import datetime
           from database import fiyat_ekle
@@ -102,5 +88,34 @@ jobs:
                   float(item["satin_al"])
               )
 
-          print(f"Veritabanina {len(kayitlar)} Kopazar fiyati kaydedildi")
-          '"'"'
+          print(
+              f"Veritabanina {len(kayitlar)} Kopazar fiyati kaydedildi"
+          )
+          PY
+
+      - name: SSH baglantisini hazirla
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          printf '178.105.50.234 %s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          ssh-keygen -F 178.105.50.234 > /dev/null
+
+      - name: Dosyalari VPS sunucusuna gonder
+        run: |
+          scp -o BatchMode=yes \
+            kopazar.json kopazar_kaydet.py \
+            root@178.105.50.234:/root/gamendeks/
+
+      - name: Fiyatlari VPS veritabanina kaydet
+        run: |
+          ssh -o BatchMode=yes root@178.105.50.234 \
+            "cd /root/gamendeks && /root/gamendeks/venv/bin/python kopazar_kaydet.py"
