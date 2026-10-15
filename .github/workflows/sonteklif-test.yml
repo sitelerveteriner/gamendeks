@@ -1,0 +1,33 @@
+
+name: Sonteklif Erisim Testi
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sonteklif HTTP istegi
+        run: |
+          python3 - <<'PY'
+          import urllib.request
+          import urllib.error
+
+          url = "https://www.sonteklif.com/"
+          req = urllib.request.Request(
+              url,
+              headers={"User-Agent": "Mozilla/5.0"}
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  content = response.read()
+                  print("HTTP STATUS:", response.status)
+                  print("YANIT BOYUTU:", len(content))
+          except urllib.error.HTTPError as e:
+              print("HTTP STATUS:", e.code)
+              print("YANIT BOYUTU:", len(e.read()))
+          except Exception as e:
+              print("HATA:", type(e).__name__, str(e))
+          PY
